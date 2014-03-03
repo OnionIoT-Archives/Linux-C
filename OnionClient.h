@@ -44,19 +44,29 @@ int readByte(int  *index);
 int readPacket(int* lengthLength);
 
 
+
 /*Onion client function*/
 void callback(char*, char*, unsigned int);
 void onion_connect(char*, char*);
 int onion_loop();
+void onion_get(char*, remoteFunction);
+void onion_post(char*, remoteFunction, char*);
+//void update(char*, float);
+
+// Array of functions registered as remote functions and length
+remoteFunction* remoteFunctions;
+unsigned int totalFunctions;
+char* registerFunction(remoteFunction);
+
+char* onion_deviceId;
+char* onion_deviceKey;
+
+
 
 //OnionClient(char*, char*);
 //void begin();
-//void get(char*, remoteFunction);
-//void post(char*, remoteFunction, char*);
-//void update(char*, float);
 //boolean loop();
 //
-//char* registerFunction(remoteFunction);
 //boolean connect(char*, char*, char*);
 //boolean connected();
 //boolean publish(char*, char*);
@@ -74,12 +84,7 @@ int onion_loop();
 //
 
 //
-//// Array of functions registered as remote functions and length
-//remoteFunction* remoteFunctions;
-//unsigned int totalFunctions;
-////Client* _client;
-//char* deviceId;
-//char* deviceKey;
+//Client* _client;
 
 #endif
 

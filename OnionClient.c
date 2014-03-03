@@ -103,7 +103,6 @@ int readPacket(int* lengthLength) {
             len = 0; // This will cause the packet to be ignored.
         }
     }
-
     return len;
 }
 
@@ -158,16 +157,12 @@ int mqtt_connect(char* id, char* user, char* pass) {
         for (j = 0; j < 9; j++) {
             buffer[length++] = d[j];
         }
-
         // No WillMsg
         uint8_t v = 0x02;
-
         // User
         v = v | 0x80;
-
         // Password
         v = v | (0x80 >> 1);
-
         buffer[length++] = v;
 
         buffer[length++] = ((MQTT_KEEPALIVE) >> 8);
@@ -200,42 +195,33 @@ int mqtt_connect(char* id, char* user, char* pass) {
     }
     return false;
 }
+
 int mqtt_publish(char* topic, char* payload){
-
     int plength = strlen(payload);
-    if (connected()) {
-        // Leave room in the buffer for header and variable length field
-        uint16_t length = 5;
-        length = writeString(topic, buffer, length);
-        uint16_t i;
-        for (i = 0; i < plength; i++) {
-            buffer[length++] = payload[i];
-        }
-        uint8_t header = MQTTPUBLISH;
-
-        return write(header, buffer, length - 5);
+    // Leave room in the buffer for header and variable length field
+    uint16_t length = 5;
+    length = writeString(topic, buffer, length);
+    uint16_t i;
+    for (i = 0; i < plength; i++) {
+        buffer[length++] = payload[i];
     }
-    return false;
+    uint8_t header = MQTTPUBLISH;
+    return write(header, buffer, length - 5);
 }
 
 int mqtt_subscribe(char* topic){
-    if (connected()) {
-        // Leave room in the buffer for header and variable length field
-        uint16_t length = 5;
-        nextMsgId++;
-        if (nextMsgId == 0) {
-            nextMsgId = 1;
-        }
-        buffer[length++] = (nextMsgId >> 8);
-        buffer[length++] = (nextMsgId & 0xFF);
-        length = writeString(topic, buffer, length);
-        buffer[length++] = 0; // Only do QoS 0 subs
-        return write(MQTTSUBSCRIBE | MQTTQOS1, buffer, length - 5);
+    // Leave room in the buffer for header and variable length field
+    uint16_t length = 5;
+    nextMsgId++;
+    if (nextMsgId == 0) {
+        nextMsgId = 1;
     }
-    return false;
+    buffer[length++] = (nextMsgId >> 8);
+    buffer[length++] = (nextMsgId & 0xFF);
+    length = writeString(topic, buffer, length);
+    buffer[length++] = 0; // Only do QoS 0 subs
+    return write(MQTTSUBSCRIBE | MQTTQOS1, buffer, length - 5);
 }
-
-
 
 
 /* Onion Client Functions */
@@ -256,6 +242,68 @@ void onion_connect(char* deviceId, char* deviceKey){
         mqtt_publish("/register", cmd);
         mqtt_subscribe(topic);
     }
+    onion_deviceId = malloc(strlen(deviceId) + 1);
+    onion_deviceId[0] = 0;
+    strcpy(onion_deviceId, deviceId);
+
+    onion_deviceKey = malloc(strlen(deviceKey) + 1);
+    onion_deviceKey[0] = 0;
+    strcpy(onion_deviceKey, deviceKey);
+
+    remoteFunctions = malloc(sizeof(remoteFunction));
+    remoteFunctions[0] = NULL;
+    totalFunctions = 1;
+}
+
+char* registerFunction(remoteFunction function) {
+    int i;
+    remoteFunction* resized = malloc(sizeof(remoteFunction)*(totalFunctions + 1));
+    for (i = 0; i < totalFunctions; i++) {
+        resized[i] = remoteFunctions[i];
+    }
+    // Set the last element of resized as the new function
+    resized[totalFunctions] = function;
+
+    free(remoteFunctions);
+    remoteFunctions = resized;
+
+    char* idStr = malloc(6);
+    idStr[0] = 0;
+    sprintf(idStr, "%d", totalFunctions);
+    totalFunctions++;
+
+    return idStr;
+};
+
+void onion_get(char* endpoint, remoteFunction function){
+    char* functionId = registerFunction(function);
+    char* payload = malloc(strlen(onion_deviceId) + strlen(endpoint) + strlen(functionId) + 7);
+    payload[0] = 0;
+    strcat(payload, onion_deviceId);
+    strcat(payload, ";GET;");
+    strcat(payload, endpoint);
+    strcat(payload, ";");
+    strcat(payload, functionId);
+    mqtt_publish("/register", payload);
+    free(functionId);
+    free(payload);
+}
+
+void onion_post(char* endpoint, remoteFunction function, char* dataStructure){
+
+    char* functionId = registerFunction(function);
+    char* payload = malloc(strlen(onion_deviceId) + strlen(dataStructure) + strlen(endpoint) + strlen(functionId) + 10);
+    payload[0] = 0;
+    strcat(payload, onion_deviceId);
+    strcat(payload, ";POST;");
+    strcat(payload, endpoint);
+    strcat(payload, ";");
+    strcat(payload, functionId);
+    strcat(payload, ";");
+    strcat(payload, dataStructure);
+    mqtt_publish("/register", payload);
+    free(functionId);
+    free(payload);
 }
 
 int onion_loop(){ 
@@ -309,50 +357,55 @@ int onion_loop(){
     } else {
         //this->connect(deviceId, deviceId, deviceKey);
         //TODO reconnect
+        //mqtt_connect(deviceId, deviceKey);
     }
 }
 
 void callback(char* topic, char* payload, unsigned int length) {
-    printf("callback\n");
-    printf("topic: %s\n", topic);
-    printf("payload: %s\n", payload);
-    //// Get the function ID
-    //char idStr[6] = "";
+    //printf("callback\n");
+    //printf("topic: %s\n", topic);
+    //printf("payload: %s\n", payload);
+    // Get the function ID
+    char idStr[6] = "";
     //OnionParams* params = NULL;
-    //bool hasParams = false;
-    //                
-    //int i = 0;
-    //for(i; i < length && i < 5; i++) {
-    //        idStr[i] = (char)payload[i];
-    //        if(i < length - 1 && (int)payload[i + 1] == 59) {
-    //                hasParams = true;
-    //                break;
-    //        }
-    //}
-    //// Add NULL to end of string
-    //idStr[++i] = 0;
-    //unsigned int functionId = atoi(idStr);
-    //
-    //if(hasParams) {
-    //        // skip the first ';'
-    //        int offset = ++i;
-    //        char* rawParams = new char[length - offset + 1];
-    //        rawParams[0] = 0;
+    char * params = "";
+    bool hasParams = false;
+                    
+    int i = 0;
+    for(i; i < length && i < 5; i++) {
+            idStr[i] = (char)payload[i];
+            if(i < length - 1 && (int)payload[i + 1] == 59) {
+                    hasParams = true;
+                    break;
+            }
+    }
+    // Add NULL to end of string
+    char* rawParams;
+    idStr[++i] = 0;
+    unsigned int functionId = atoi(idStr);
+    //printf("functionID : %d\n",functionId);
+    //printf("totalFunctions : %d\n",totalFunctions);
+    
+    if(hasParams) {
+            // skip the first ';'
+            int offset = ++i;
+            rawParams = malloc(length - offset + 1);
+            rawParams[0] = 0;
 
-    //        // Load elements into raw params
-    //        for(i; i < length; i++) {
-    //                rawParams[i - offset] = (char)payload[i];
-    //        }
-    //        rawParams[length - offset] = 0;
-    //        
+            // Load elements into raw params
+            for(i; i < length; i++) {
+                    rawParams[i - offset] = (char)payload[i];
+            }
+            rawParams[length - offset] = 0;
+            
     //        params = new OnionParams(rawParams);
     //        delete[] rawParams;
-    //}
+    }
     //
-    //// Call remote function
-    //if(functionId && functionId < totalFunctions) {
-    //        remoteFunctions[functionId](params);
-    //}
+    // Call remote function
+    if(functionId && functionId < totalFunctions) {
+            remoteFunctions[functionId](rawParams);
+    }
 
     //delete params;
 }
