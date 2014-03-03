@@ -1,0 +1,4 @@
+gcc -c test.c 
+gcc -c OnionClient.c 
+gcc -o testExe test.o OnionClient.o
+./testExe localhost
