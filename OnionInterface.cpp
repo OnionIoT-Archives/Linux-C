@@ -7,10 +7,15 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 OnionInterface::OnionInterface() {
     recvPkt = 0;
     sock = 0; // Make sure we have something to show invalid socket
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    milliStart = now.tv_sec *1000 + (now.tv_usec/1000);
 }
 
 OnionInterface::OnionInterface(char* host, uint16_t port) {
@@ -18,15 +23,15 @@ OnionInterface::OnionInterface(char* host, uint16_t port) {
     open(host,port);
 }
 
-int8_t OnionInterface::open(char* host, uint16_t port) {
+int8_t OnionInterface::open(char* hostname, uint16_t port) {
     if (!connected()) {
 		int sd, rc;
         struct sockaddr_in localAddr, servAddr;
         struct hostent *host;
     
-        host = gethostbyname(host);
+        host = gethostbyname(hostname);
         if(host==NULL) {
-            printf("unknown host '%s'\n",host);
+            printf("unknown host '%s'\n",hostname);
             return 1;
         }
     
@@ -48,7 +53,7 @@ int8_t OnionInterface::open(char* host, uint16_t port) {
     
         rc = bind(sd, (struct sockaddr *) &localAddr, sizeof(localAddr));
         if(rc<0) {
-            printf("%s: cannot bind port TCP %u\n",host,port);
+            printf("%s: cannot bind port TCP %u\n",hostname,port);
             perror("error ");
             return 1;
         }
@@ -74,7 +79,7 @@ bool OnionInterface::connected(void) {
 
 int8_t OnionInterface::send(OnionPacket* pkt) {
     int length = pkt->getBufferLength();
-    int rc = send(sock,(uint8_t*)pkt->getBuffer(), length);
+    int rc = ::send(sock,(uint8_t*)pkt->getBuffer(), length,0);
     if (length == rc) {
         delete pkt;
         return 1;
@@ -105,6 +110,14 @@ OnionPacket* OnionInterface::getPacket(void) {
 }
 
 void OnionInterface::close(void) {
-    _client->stop();
+    ::close(sock);
 }
 
+int OnionInterface::getMillis(void) {
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    long nowMillis = now.tv_sec *1000 + (now.tv_usec/1000);
+    return nowMillis-milliStart;
+}
+        
+        

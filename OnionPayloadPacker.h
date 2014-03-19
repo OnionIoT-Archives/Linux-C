@@ -2,6 +2,7 @@
 #define ONION_PAYLOAD_PACKER_H
 
 #include "OnionPacket.h"
+#include <stdint.h>
 
 class OnionPayloadPacker {
 public:

@@ -6,4 +6,4 @@ g++ -c OnionParams.cpp
 g++ -c OnionPayloadData.cpp
 g++ -c OnionPayloadPacker.cpp
 g++ -o testExe test.o OnionClient.o OnionInterface.o OnionPacket.o OnionParams.o OnionPayloadData.o OnionPayloadPacker.o
-./testExe localhost
+#./testExe localhost

@@ -2,7 +2,7 @@
 #define ONION_INTERFACE_H
 
 //#define ARDUINO_YUN
-
+#include <stdint.h>
 // ONION_KEEPALIVE : keepAlive interval in Seconds
 #define ONION_KEEPALIVE 			15
 
@@ -17,11 +17,12 @@ public:
 	OnionPacket* getPacket(void);
 	bool connected(void);
 	void close(void);
-	
+	int getMillis(void);
 
 protected:
     OnionPacket* recvPkt;
 	int sock;
+	long milliStart;
 };
 
 #endif

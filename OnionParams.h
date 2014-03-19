@@ -1,7 +1,7 @@
 #ifndef ONION_TYPE_H
 #define ONION_TYPE_H
 
-#include <Arduino.h>
+#include <stdint.h>
 
 class OnionParams {
 public:

@@ -1,9 +1,10 @@
 #include "OnionParams.h"
+#include <string.h>
 OnionParams::OnionParams(uint8_t count) {
     if (count > 0) {
         data = new char*[count];
     } else {
-        data = NULL;
+        data = 0;
     }
 }
 
@@ -32,9 +33,9 @@ OnionParams::OnionParams(char* payload) {
 		strcpy(data[length], chunk);
 		length++;
 
-		while(chunk != NULL) {
-			chunk = strtok(NULL, ",");
-			if(chunk != NULL) {
+		while(chunk != 0) {
+			chunk = strtok(0, ",");
+			if(chunk != 0) {
 				char** resized = new char*[length + 1];
 				for(int i = 0; i < length; i++) {
 					resized[i] = new char[strlen(data[i]) + 1];
@@ -59,7 +60,7 @@ OnionParams::~OnionParams() {
 int OnionParams::getInt(unsigned int index) {
 	int rc = 0;
 	if(index < length) {
-		rc = atoi(data[index]);
+		//rc = atoi(data[index]);
 	}
 	return rc;
 }
@@ -67,7 +68,7 @@ int OnionParams::getInt(unsigned int index) {
 float OnionParams::getFloat(unsigned int index) {
 	float rc = 0.0;
 	if(index < length) {
-		rc = atof(data[index]);
+		//rc = atof(data[index]);
 	}
 	return rc;
 }
@@ -81,7 +82,7 @@ bool OnionParams::getBool(unsigned int index) {
 }
 
 char* OnionParams::getChar(unsigned int index) {
-	char* rc = NULL;
+	char* rc = 0;
 	if(index < length) {
 		rc = data[index];
 	}
