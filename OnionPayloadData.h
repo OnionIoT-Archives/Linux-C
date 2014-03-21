@@ -8,7 +8,7 @@ class OnionPayloadData {
 public:
 	OnionPayloadData();
 	OnionPayloadData(OnionPacket* pkt);
-	OnionPayloadData(OnionPacket* pkt,unsigned int offset);
+	OnionPayloadData(OnionPacket* pkt,uint16_t offset);
 	~OnionPayloadData();
 	// Initalize data in object
 	void init(OnionPacket* pkt,uint16_t offset);
@@ -31,7 +31,7 @@ public:
 	int16_t getInt(void);
 	// getBool() will return the parsed data of a bool, or false if it is another type
 	bool getBool(void);
-	int16_t getRawLength();
+	uint16_t getRawLength();
 protected:
     // Internal use for unpacking
 	void unpackArray(void);

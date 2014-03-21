@@ -35,7 +35,7 @@ OnionPayloadData::~OnionPayloadData() {
     
 }
 
-int OnionPayloadData::getRawLength() {
+uint16_t OnionPayloadData::getRawLength() {
     return this->rawLength;
 }
 

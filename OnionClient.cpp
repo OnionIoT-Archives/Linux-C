@@ -7,8 +7,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-//char OnionClient::domain[] = "zh.onion.io";
-char OnionClient::domain[] = "pataelmo.com";
+char OnionClient::domain[] = "zh.onion.io";
+//char OnionClient::domain[] = "pataelmo.com";
 uint16_t OnionClient::port = 2721;
    
 static char* publishMap[] = {"ipAddr","192.168.137.1","mac","deadbeef"};
@@ -78,6 +78,7 @@ bool OnionClient::connect(char* id, char* key) {
     				lastInActivity = interface->getMillis();
     				pingOutstanding = false;
     				delete recv_pkt;
+                                printf("Connected to server...\n");
     				return true;
     			}
 			}
@@ -261,15 +262,18 @@ bool OnionClient::loop() {
 			lastInActivity = t;
 			uint8_t type = pkt->getType();
 			if (type == ONIONPUBLISH) {
+                            printf("Got publish data...\n");
 			    parsePublishData(pkt);
 			} else if (type == ONIONPINGREQ) {
 			    // Functionize this
+                                printf("Got ping req...\n");
 				sendPingResponse();
 				lastOutActivity = t;
 			} else if (type == ONIONPINGRESP) {
+                                printf("Got ping resp...\n");
 				pingOutstanding = false;
 			} else if (type == ONIONSUBACK) {
-        	    //Serial.print("Publishing Data\n");
+        	            printf("Publishing Data\n");
         		//publish("/onion","isAwesome");
         		publish(publishMap,2);
 				lastOutActivity = t;

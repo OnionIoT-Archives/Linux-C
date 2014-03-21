@@ -32,7 +32,7 @@ int8_t OnionInterface::open(char* hostname, uint16_t port) {
         host = gethostbyname(hostname);
         if(host==NULL) {
             printf("unknown host '%s'\n",hostname);
-            return 1;
+            return 0;
         }
     
         servAddr.sin_family = host->h_addrtype;
@@ -43,7 +43,7 @@ int8_t OnionInterface::open(char* hostname, uint16_t port) {
         sd = socket(AF_INET, SOCK_STREAM, 0);
         if(sd<0) {
             perror("cannot open socket ");
-            return 1;
+            return 0;
         }
     
         /* bind any port number */
@@ -55,18 +55,18 @@ int8_t OnionInterface::open(char* hostname, uint16_t port) {
         if(rc<0) {
             printf("%s: cannot bind port TCP %u\n",hostname,port);
             perror("error ");
-            return 1;
+            return 0;
         }
     
         /* connect to server */
         rc = connect(sd, (struct sockaddr *) &servAddr, sizeof(servAddr));
         if(rc<0) {
             perror("cannot connect ");
-            return 1;
+            return 0;
         }
         sock = sd;
     
-        return 0;
+        return 1;
 	}
 	return 1;
 }
