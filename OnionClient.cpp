@@ -8,9 +8,10 @@
 #include <stdlib.h>
 
 //char OnionClient::domain[] = "zh.onion.io";
-char OnionClient::domain[] = "192.168.137.1";
+char OnionClient::domain[] = "pataelmo.com";
 uint16_t OnionClient::port = 2721;
-    
+   
+static char* publishMap[] = {"ipAddr","192.168.137.1","mac","deadbeef"};
 OnionClient::OnionClient(char* deviceId, char* deviceKey) {
 	this->deviceId = new char[strlen(deviceId) + 1];
 	this->deviceId[0] = 0;
@@ -32,8 +33,6 @@ void OnionClient::begin() {
     //Serial.begin(115200);
 	//Serial.print("Start Connection\n");
 	if (connect(deviceId, deviceKey)) {
-	    //Serial.print("Publishing Data\n");
-		publish("/onion","isAwesome");
 	    //Serial.print("Sending Subscription Requests\n");
 		subscribe();
 	}
@@ -193,10 +192,24 @@ bool OnionClient::publish(char* key, char* value) {
 	return false;
 }
 
+bool OnionClient::publish(char** dataMap, uint8_t count) {
+    OnionPacket* pkt = new OnionPacket(128);
+    pkt->setType(ONIONPUBLISH);
+    OnionPayloadPacker* pack = new OnionPayloadPacker(pkt);
+    pack->packMap(count);
+    for (uint8_t x=0; x<count; x++) {
+        pack->packStr(*dataMap++);
+        pack->packStr(*dataMap++);
+    }
+    
+    interface->send(pkt);
+    delete pack;
+}
+
 bool OnionClient::subscribe() {
 	if (interface->connected()) {
 	    // Generate 
-	    ////Serial.print("->Found ");
+	    //Serial.print("->Found ");
 	    //Serial.print(totalSubscriptions);
 	    //Serial.print(" Subscriptions\n");
 	    if (totalSubscriptions > 0) {
@@ -252,9 +265,14 @@ bool OnionClient::loop() {
 			} else if (type == ONIONPINGREQ) {
 			    // Functionize this
 				sendPingResponse();
+				lastOutActivity = t;
 			} else if (type == ONIONPINGRESP) {
 				pingOutstanding = false;
 			} else if (type == ONIONSUBACK) {
+        	    //Serial.print("Publishing Data\n");
+        		//publish("/onion","isAwesome");
+        		publish(publishMap,2);
+				lastOutActivity = t;
 			}
 			delete pkt;
 		}
@@ -288,33 +306,54 @@ void OnionClient::parsePublishData(OnionPacket* pkt) {
     
     uint16_t length = pkt->getBufferLength();
     uint8_t *ptr = pkt->getBuffer();
-    //Serial.print("Publish Pkt Length = ");
-    //Serial.print(length);
-    //Serial.print("\n");
-    //Serial.print("Raw Publish Data = ");
-    for (uint16_t x=0;x<length;x++) {
-        //Serial.print(ptr[x]);
-        //Serial.print(", ");
-    }
-    //Serial.print("\n");
+//    Serial.print("Publish Pkt Length = ");
+//    Serial.print(length);
+//    Serial.print("\n");
     OnionPayloadData* data = new OnionPayloadData(pkt);
+    
+//    Serial.print("Payload Raw Length = ");
+//    Serial.print(data->getRawLength());
+//    Serial.print("\n");
     data->unpack();
     uint8_t count = data->getLength();
     uint8_t function_id = data->getItem(0)->getInt();
+//    Serial.print("Param Count=");
+//    Serial.print(count-1);
+//    Serial.print("\n");
+//    Serial.print("Function Id=");
+//    Serial.print(function_id);
+//    Serial.print("\n");
 	OnionParams* params = new OnionParams(count-1);
-    //Serial.print("Param Count=");
-    //Serial.print(count-1);
-    //Serial.print("\n");
+    
 	if (count > 1) {
 	    // Get parameters
 	    for (uint8_t i=0;i<(count-1);i++) {
 	        OnionPayloadData* item = data->getItem(i+1);
-	        params->setStr(i,(char *)data->getBuffer(),(uint8_t)data->getLength());
+	        uint8_t strLen = item->getLength();
+	        // Test
+	        char* buf_ptr = (char *)(item->getBuffer());
+//            Serial.print("param #");
+//            Serial.print(i+1);
+//            Serial.print(" = ");
+//            Serial.print(buf_ptr);
+//            Serial.print("\n");
+//            delay(100);
+	        params->setStr(i,buf_ptr,strLen);
 	    }
 	}
 	if (function_id < totalFunctions) {
-	    remoteFunctions[function_id](params);
+	    if (remoteFunctions[function_id] != 0) {
+	        remoteFunctions[function_id](params);
+	    } else {
+	        // if the remote function isn't called
+	        // no one will delete params, so we have to
+	        delete params;
+	    }
+	} else {
+	    // We need to delete this here since no one else can
+	    delete params;
 	}
 	//delete pkt;
+	//delete params;
 	delete data;
 }

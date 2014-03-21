@@ -50,6 +50,7 @@ public:
 	void begin();
 	char* registerFunction(char*, remoteFunction, char** params, uint8_t param_count);
     void update(char*, float);
+    bool publish(char** dataMap, uint8_t count);
 	bool publish(char*, char*);
 	bool publish(char*, int);
 	bool publish(char*, bool);
