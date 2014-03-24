@@ -18,6 +18,7 @@ public:
 	bool connected(void);
 	void close(void);
 	int getMillis(void);
+	char* getIPAddr(void);
 
 protected:
     OnionPacket* recvPkt;

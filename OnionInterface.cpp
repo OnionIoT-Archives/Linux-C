@@ -109,6 +109,15 @@ OnionPacket* OnionInterface::getPacket(void) {
     }
 }
 
+char* OnionInterface::getIPAddr(void) {
+    int len = sizeof(struct sockaddr);
+    struct sockaddr_in addr;
+    if (getsockname(sock, (struct sockaddr *) &addr, &len) != 0) {
+        return 0;
+    }
+    return inet_ntoa(addr.sin_addr);
+}
+
 void OnionInterface::close(void) {
     ::close(sock);
 }
