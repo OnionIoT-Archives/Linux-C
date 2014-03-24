@@ -1,0 +1,14 @@
+### ONION CLIENT LIBRARY ###
+
+### BUILD
+To build test code use make in this folder:
+
+make
+
+
+
+### RUN
+Test application defined in the test.cpp file is created as executable "testExe".
+To run:
+
+./testExe
