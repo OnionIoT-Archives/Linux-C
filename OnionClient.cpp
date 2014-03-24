@@ -262,18 +262,18 @@ bool OnionClient::loop() {
 			lastInActivity = t;
 			uint8_t type = pkt->getType();
 			if (type == ONIONPUBLISH) {
-                            printf("Got publish data...\n");
+                            //printf("Got publish data...\n");
 			    parsePublishData(pkt);
 			} else if (type == ONIONPINGREQ) {
 			    // Functionize this
-                                printf("Got ping req...\n");
+                                //printf("Got ping req...\n");
 				sendPingResponse();
 				lastOutActivity = t;
 			} else if (type == ONIONPINGRESP) {
-                                printf("Got ping resp...\n");
+                                //printf("Got ping resp...\n");
 				pingOutstanding = false;
 			} else if (type == ONIONSUBACK) {
-        	            printf("Publishing Data\n");
+        	            //printf("Publishing Data\n");
         		//publish("/onion","isAwesome");
         		publish(publishMap,2);
 				lastOutActivity = t;
