@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-//OnionInterface* OnionPacket::interface = 0;
 OnionPacket::OnionPacket(void) {
     this->buf = 0;
     this->buf_len = 0;
@@ -73,18 +72,12 @@ uint8_t* OnionPacket::getPayload(void) {
 
 bool OnionPacket::isComplete(void) {
     if (ptr == buf) {
-        //Serial.print("-->ptr = buf\n");
         return false;
     }
     uint16_t set_length = (buf[1] << 8) + buf[2];
     if (set_length == length) {
         return true;
     }
-    //Serial.print("-->set length = ");
-    //Serial.print(set_length);
-    //Serial.print(", length = ");
-    //Serial.print(length);
-    //Serial.print("\n");
     return false;
 }
 
@@ -134,26 +127,3 @@ uint8_t OnionPacket::getType(void) {
         return 0;
     }
 }
-//
-//OnionPacket* OnionPacket::readPacket(void) {
-//    OnionPacket *pkt = new OnionPacket(128);
-//    // Read packet from socket
-//    
-//    return pkt;
-//}
-//
-//bool OnionPacket::send(void) {
-//    // Ensure we have a buffer
-//    if (buf == 0) {
-//        return false;
-//    }
-//    // Update payload length
-//    updateLength();
-//    // Write this packet to the socket
-//    if (OnionPacket::interface != 0) {
-//        interface->send(this);
-//        return true;
-//    }
-//    // Report success/fail
-//    return false;
-//}

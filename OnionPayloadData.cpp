@@ -20,9 +20,7 @@ OnionPayloadData::OnionPayloadData(OnionPacket* pkt,uint16_t offset) {
 
 OnionPayloadData::~OnionPayloadData() {
     // Free any malloc'd or new'd data in this object
-        //Serial.print("-> payload data destructor\n");
     if (dataObjectArray != 0) {
-        //Serial.print("--> deleting object array\n");
         for (uint16_t x = 0;x<length;x++) {
             delete dataObjectArray[x];
         }
@@ -30,7 +28,6 @@ OnionPayloadData::~OnionPayloadData() {
     
     if (data != 0) {
         free(data);
-        //Serial.print("--> freed data\n");
     }
     
 }
@@ -66,28 +63,17 @@ int8_t OnionPayloadData::unpack(void) {
     length = 1;
     bytesParsed++;  // Add one to parsed bytes since all formats have at least 1 byte
     uint8_t rawType = rawBuffer[0];
-//    Serial.print("-> unpack rawType = ");
-//    Serial.print(rawType);
-//    Serial.print("\n");
     //printf("->unpack: rawType = %02X\n",rawType);
     if (((rawType & 0x80) == 0) || ((rawType & 0xE0) == 0xE0)) {
         type = MSGPACK_FIXINT_HEAD;
-//        Serial.print("--> unpack type = int\n");
         data = calloc(1,sizeof(int));
         int *ptr = (int*) data;
         *ptr = rawType;
-//        Serial.print("--> unpack value = ");
-//        Serial.print(*ptr);
-//        Serial.print("\n");
         //printf("->unpack: found fixint type, value = %d\n",*ptr);
     } else if ((rawType & 0xF0) == MSGPACK_FIXMAP_HEAD) {
         type = MSGPACK_FIXMAP_HEAD;
-//        Serial.print("--> unpack type = map\n");
         length = rawType & 0x0F;
         
-//        Serial.print("--> unpack length = ");
-//        Serial.print(length);
-//        Serial.print("\n");
         // ************************** THIS NEEDS UPDATING *********************
         // Need to double length of data array for map pairs, and need to handle
         // it accordingly in the destructor (probably need another length or map bool
@@ -99,14 +85,9 @@ int8_t OnionPayloadData::unpack(void) {
         }
     } else if ((rawType & 0xF0) == MSGPACK_FIXARRAY_HEAD) {
         type = MSGPACK_FIXARRAY_HEAD;
-//        Serial.print("--> unpack type = array\n");
         length = rawType & 0x0F;
-//        Serial.print("--> unpack length = ");
-//        Serial.print(length);
-//        Serial.print("\n");
         dataObjectArray = new OnionPayloadData*[length];
         dataIsObject = true;
-        //printf("->unpack: found fixArray type, length = %d\n",length);
         for (int x=0;x<length;x++) {
             //printf("->unpack: create a new object with offset=%d & bytesParsed=%d\n",offset,bytesParsed);
             dataObjectArray[x] = new OnionPayloadData(pkt,offset+bytesParsed); // Begining of sub object is current offset + bytes parsed
@@ -114,11 +95,7 @@ int8_t OnionPayloadData::unpack(void) {
         }
     } else if ((rawType & 0xE0) == MSGPACK_FIXSTR_HEAD) {
         type = MSGPACK_FIXSTR_HEAD;
-//        Serial.print("--> unpack type = str\n");
         length = rawType & 0x1F;
-//        Serial.print("--> unpack length = ");
-//        Serial.print(length);
-//        Serial.print("\n");
         data = new char[length+1];
         char* ptr = (char*) data;
         memcpy(ptr,rawBuffer+1,length);
@@ -127,9 +104,6 @@ int8_t OnionPayloadData::unpack(void) {
         bytesParsed += length;
     } else {
         type = rawType;
-        //Serial.print("--> unpack type = (other) = ");
-        //Serial.print(rawType);
-        //Serial.print("\n");
         switch (type) {
             case MSGPACK_NIL_HEAD: {
                 data = 0;
@@ -333,154 +307,3 @@ void OnionPayloadData::unpackNil(void) {
 void OnionPayloadData::unpackBool(void) {
     
 }
-
-
-//
-//
-//void  OnionPayloadData::packArray(int length) {
-//    // First ensure the buffer isn't full
-//    if (len<max_len) {
-//        if (length < 16) {
-//            buf[len++] = MSGPACK_FIXARRAY_HEAD + length;
-//        } else if (length < 65536) {
-//            // Ensure we have at least 3 bytes
-//            if (len+2<max_len) {               
-//                buf[len++] = MSGPACK_ARRAY16_HEAD;
-//                buf[len++] = length >> 8;
-//                buf[len++] = length & 0xFF;
-//            }
-//        } else {
-//            // Ensure we have at least 5 bytes
-//            if (len+4<max_len) {
-//                buf[len++] = MSGPACK_ARRAY32_HEAD;
-//                buf[len++] = length >> 24;
-//                buf[len++] = (length >> 16) & 0xFF;
-//                buf[len++] = (length >> 8) & 0xFF;
-//                buf[len++] = length & 0xFF;
-//            }
-//        }
-//    }
-//}
-//
-//void  OnionPayloadData::packMap(int length) {
-//    // First ensure the buffer isn't full
-//    if (len<max_len) {
-//        if (length < 16) {
-//            buf[len++] = MSGPACK_FIXMAP_HEAD + length;
-//        } else if (length < 65536) {
-//            // Ensure we have at least 3 bytes
-//            if (len+2<max_len) {               
-//                buf[len++] = MSGPACK_MAP16_HEAD;
-//                buf[len++] = length >> 8;
-//                buf[len++] = length & 0xFF;
-//            }
-//        } else {
-//            // Ensure we have at least 5 bytes
-//            if (len+4<max_len) {
-//                buf[len++] = MSGPACK_MAP32_HEAD;
-//                buf[len++] = length >> 24;
-//                buf[len++] = (length >> 16) & 0xFF;
-//                buf[len++] = (length >> 8) & 0xFF;
-//                buf[len++] = length & 0xFF;
-//            }
-//        }
-//    }
-//}
-//
-//void  OnionPayloadData::packInt(int i) {
-//    union {int16_t i;uint8_t byte[2];} i16;
-//    // First ensure the buffer isn't full
-//    if (len<max_len) {
-//        if (i < 128 && i > -33) {
-//            // fixInt
-//            buf[len++] = (int8_t)i;
-//        } else if ((i>=0) && (i<128)) {
-//            buf[len++] = (int8_t)i;
-//        } else if ((i > -129) && (i<128)) {
-//            // Ensure we have at least 2 bytes
-//            if (len+1 < max_len) {
-//                buf[len++] = MSGPACK_INT8_HEAD;
-//                buf[len++] = i;
-//            }
-//        } else if ((i > -32769) && (i<32768)) {
-//            // Ensure we have at least 2 bytes
-//            if (len+2 < max_len) {
-//                union {int16_t i;uint8_t byte[2];} i16;
-//                i16.i = i;
-//                buf[len++] = MSGPACK_INT16_HEAD;
-//                buf[len++] = i16.byte[0];
-//                buf[len++] = i16.byte[1];
-//            }
-//        } else {
-//            // Ensure we have at least 5 bytes
-//            if (len+4<max_len) {
-//                union {int32_t i;uint8_t byte[2];} i32;
-//                i32.i = i;
-//                buf[len++] = MSGPACK_MAP32_HEAD;
-//                buf[len++] = i32.byte[0];
-//                buf[len++] = i32.byte[1];
-//                buf[len++] = i32.byte[2];
-//                buf[len++] = i32.byte[3];
-//            }
-//        }
-//    }
-//}
-//
-//void  OnionPayloadData::packStr(uint8_t* c) {
-//    int len = strlen(c);
-//    packStr(c,len);
-//}
-//
-//void  OnionPayloadData::packStr(uint8_t* c, int length) {
-//    // First ensure the buffer isn't full
-//    if (len+length<max_len) {
-//        if (length < 32) {
-//            buf[len++] = MSGPACK_FIXSTR_HEAD + length;
-//        } else if (length < 256) {
-//            // Ensure we have at least 2 bytes
-//            buf[len++] = MSGPACK_STR8_HEAD;
-//            buf[len++] = length & 0xFF;
-//        } else if (length < 65536) {
-//            // Ensure we have at least 3 bytes
-//            buf[len++] = MSGPACK_STR16_HEAD;
-//            buf[len++] = length >> 8;
-//            buf[len++] = length & 0xFF;
-//        } else {
-//            buf[len++] = MSGPACK_STR32_HEAD;
-//            buf[len++] = length >> 24;
-//            buf[len++] = (length >> 16) & 0xFF;
-//            buf[len++] = (length >> 8) & 0xFF;
-//            buf[len++] = length & 0xFF;
-//        }
-//        if (len+length <= max_len) {
-//            memcpy(buf+len,c,length);
-//            len+=length;
-//        }
-//    }
-//}
-//
-//void  OnionPayloadData::packNil() {
-//    // First ensure the buffer isn't full
-//    if (len+length<max_len) {
-//        buf[len++] = MSGPACK_NIL_HEAD;
-//    }
-//}
-//
-//void  OnionPayloadData::packBool(bool b) {
-//    // First ensure the buffer isn't full
-//    if (len+length<max_len) {
-//        if (b) {
-//            buf[len++] = MSGPACK_TRUE_HEAD;
-//        } else {
-//            buf[len++] = MSGPACK_FALSE_HEAD;
-//        }
-//    }
-//}
-//
-//int   OnionPayloadData::getLength(void) {
-//    return this->len;
-//}
-//
-//uint8_t* OnionPayloadData::getBuffer(void) {
-//    return this->buf;
-//}

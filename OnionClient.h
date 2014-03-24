@@ -85,7 +85,6 @@ protected:
 	subscription_t* lastSubscription;
 	uint8_t totalSubscriptions;
 	unsigned int totalFunctions;
-	//Client* _client;
 	OnionInterface* interface;
 	char* deviceId;
 	char* deviceKey;

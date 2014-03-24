@@ -8,10 +8,12 @@
 #include <stdlib.h>
 
 char OnionClient::domain[] = "zh.onion.io";
-//char OnionClient::domain[] = "pataelmo.com";
 uint16_t OnionClient::port = 2721;
-   
+
+// A paired list of name value pairs to be published when device connects
 static char* publishMap[] = {"ipAddr","192.168.137.1","mac","deadbeef"};
+static uint16_t publishLength = 2; // This is the number of pairs in the map
+
 OnionClient::OnionClient(char* deviceId, char* deviceKey) {
 	this->deviceId = new char[strlen(deviceId) + 1];
 	this->deviceId[0] = 0;
@@ -30,25 +32,19 @@ OnionClient::OnionClient(char* deviceId, char* deviceKey) {
 }
 
 void OnionClient::begin() {
-    //Serial.begin(115200);
-	//Serial.print("Start Connection\n");
 	if (connect(deviceId, deviceKey)) {
-	    //Serial.print("Sending Subscription Requests\n");
 		subscribe();
 	}
 }
 
 bool OnionClient::connect(char* id, char* key) {
     if (interface == 0) {
-        //Serial.print("Tried to connect with no interface!");
         return false;
-        //interface = new OnionInterface();
     }
 	if (!interface->connected()) {
 		int result = interface->open(OnionClient::domain, OnionClient::port);
 
 		if (result) {
-			//nextMsgId = 1;
             OnionPacket* pkt = new OnionPacket(128);
             pkt->setType(ONIONCONNECT);
             OnionPayloadPacker* pack = new OnionPayloadPacker(pkt);
@@ -56,10 +52,8 @@ bool OnionClient::connect(char* id, char* key) {
             pack->packInt(ONIONPROTOCOLVERSION);
             pack->packStr(id);
             pack->packStr(key);
-            //pkt->send();
             interface->send(pkt);
 			lastInActivity = lastOutActivity = interface->getMillis();
-            //delete pkt;
             delete pack;
             OnionPacket *recv_pkt = interface->getPacket();
 			while (recv_pkt == 0) {
@@ -131,49 +125,6 @@ char* OnionClient::registerFunction(char * endpoint, remoteFunction function, ch
 };
 
 
-
-//void OnionClient::callback(uint8_t* topic, byte* payload, unsigned int length) {
-//	// Get the function ID
-//	char idStr[6] = "";
-//	OnionParams* params = NULL;
-//	bool hasParams = false;
-//			
-//	int i = 0;
-//	for(i; i < length && i < 5; i++) {
-//		idStr[i] = (char)payload[i];
-//		if(i < length - 1 && (int)payload[i + 1] == 59) {
-//			hasParams = true;
-//			break;
-//		}
-//	}
-//	// Add NULL to end of string
-//	idStr[++i] = 0;
-//	unsigned int functionId = atoi(idStr);
-//	
-//	if(hasParams) {
-//		// skip the first ';'
-//		int offset = ++i;
-//		char* rawParams = new char[length - offset + 1];
-//		rawParams[0] = 0;
-//
-//		// Load elements into raw params
-//		for(i; i < length; i++) {
-//			rawParams[i - offset] = (char)payload[i];
-//		}
-//		rawParams[length - offset] = 0;
-//		
-//		//params = new OnionParams(rawParams);
-//		delete[] rawParams;
-//	}
-//	
-//	// Call remote function
-//	if(functionId && functionId < totalFunctions) {
-//		remoteFunctions[functionId](params);
-//	}
-//
-//	delete params;
-//}
-
 bool OnionClient::publish(char* key, char* value) {
 	int key_len = strlen(key);
 	int value_len = strlen(value);
@@ -210,9 +161,6 @@ bool OnionClient::publish(char** dataMap, uint8_t count) {
 bool OnionClient::subscribe() {
 	if (interface->connected()) {
 	    // Generate 
-	    //Serial.print("->Found ");
-	    //Serial.print(totalSubscriptions);
-	    //Serial.print(" Subscriptions\n");
 	    if (totalSubscriptions > 0) {
             OnionPacket* pkt = new OnionPacket(128);
             pkt->setType(ONIONSUBSCRIBE);
@@ -221,7 +169,6 @@ bool OnionClient::subscribe() {
 	        pack->packArray(totalSubscriptions);
         	uint8_t string_len = 0;
         	uint8_t param_count = 0;
-        	//Serial.print("->Packing subs\n");
 	        for (uint8_t i=0;i<totalSubscriptions;i++) {
 	            param_count = sub_ptr->param_count;
 	            pack->packArray(param_count+2);
@@ -232,11 +179,11 @@ bool OnionClient::subscribe() {
 	            }
 	            sub_ptr = sub_ptr->next;
 	        }
+	        // Send subscribe packet
 	        interface->send(pkt);
 	        return true;
-	        //pkt->send();
+	        // Since the packet is generated and sent we can delete the packer
 	        delete pack;
-	        //delete pkt;
 	    }
 	    
 	}
@@ -262,20 +209,19 @@ bool OnionClient::loop() {
 			lastInActivity = t;
 			uint8_t type = pkt->getType();
 			if (type == ONIONPUBLISH) {
-                            //printf("Got publish data...\n");
+                //printf("Got publish data...\n");
 			    parsePublishData(pkt);
 			} else if (type == ONIONPINGREQ) {
 			    // Functionize this
-                                //printf("Got ping req...\n");
+                //printf("Got ping req...\n");
 				sendPingResponse();
 				lastOutActivity = t;
 			} else if (type == ONIONPINGRESP) {
-                                //printf("Got ping resp...\n");
+                //printf("Got ping resp...\n");
 				pingOutstanding = false;
 			} else if (type == ONIONSUBACK) {
-        	            //printf("Publishing Data\n");
-        		//publish("/onion","isAwesome");
-        		publish(publishMap,2);
+        	    //printf("Publishing Data\n");
+        		publish(publishMap,publishLength);
 				lastOutActivity = t;
 			}
 			delete pkt;
@@ -294,39 +240,23 @@ void OnionClient::sendPingRequest(void) {
     OnionPacket* pkt = new OnionPacket(8);
     pkt->setType(ONIONPINGREQ);
     interface->send(pkt);
-    //pkt->send();
-    //delete pkt;
 }
 
 void OnionClient::sendPingResponse(void) {
     OnionPacket* pkt = new OnionPacket(8);
     pkt->setType(ONIONPINGRESP);
     interface->send(pkt);
-    //pkt->send();
-    //delete pkt;
 }
 
 void OnionClient::parsePublishData(OnionPacket* pkt) {
     
     uint16_t length = pkt->getBufferLength();
     uint8_t *ptr = pkt->getBuffer();
-//    Serial.print("Publish Pkt Length = ");
-//    Serial.print(length);
-//    Serial.print("\n");
     OnionPayloadData* data = new OnionPayloadData(pkt);
     
-//    Serial.print("Payload Raw Length = ");
-//    Serial.print(data->getRawLength());
-//    Serial.print("\n");
     data->unpack();
     uint8_t count = data->getLength();
     uint8_t function_id = data->getItem(0)->getInt();
-//    Serial.print("Param Count=");
-//    Serial.print(count-1);
-//    Serial.print("\n");
-//    Serial.print("Function Id=");
-//    Serial.print(function_id);
-//    Serial.print("\n");
 	OnionParams* params = new OnionParams(count-1);
     
 	if (count > 1) {
@@ -336,12 +266,6 @@ void OnionClient::parsePublishData(OnionPacket* pkt) {
 	        uint8_t strLen = item->getLength();
 	        // Test
 	        char* buf_ptr = (char *)(item->getBuffer());
-//            Serial.print("param #");
-//            Serial.print(i+1);
-//            Serial.print(" = ");
-//            Serial.print(buf_ptr);
-//            Serial.print("\n");
-//            delay(100);
 	        params->setStr(i,buf_ptr,strLen);
 	    }
 	}
@@ -357,7 +281,5 @@ void OnionClient::parsePublishData(OnionPacket* pkt) {
 	    // We need to delete this here since no one else can
 	    delete params;
 	}
-	//delete pkt;
-	//delete params;
 	delete data;
 }

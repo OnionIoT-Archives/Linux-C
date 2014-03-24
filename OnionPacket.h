@@ -25,7 +25,6 @@ public:
 	bool send(void);
 	static OnionPacket* readPacket(void);
     void updateLength(void);
-//    static OnionInterface* interface;
     uint8_t* getPtr(void);
     int8_t incrementPtr(uint16_t count);
     bool isComplete(void);
