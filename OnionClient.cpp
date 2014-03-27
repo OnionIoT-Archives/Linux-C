@@ -13,6 +13,31 @@ uint16_t OnionClient::port = 2721;
 // A paired list of name value pairs to be published when device connects
 static char* publishMap[] = {"ipAddr","192.168.137.1","mac","deadbeef"};
 static uint16_t publishLength = 2; // This is the number of pairs in the map
+//static struct onionClientData = {0};
+OnionClient *client;
+void onion_init (char* deviceId, char* deviceKey) {
+    client = new OnionClient(deviceId,deviceKey);
+}
+
+void onion_begin() {
+    client->begin();
+}
+
+void onion_register (char *endpoint, remoteFunction function, char **params, uint8_t param_count) {
+    client->registerFunction(endpoint,function,params,param_count);
+}
+
+bool onion_publish(char* key, char* value) {
+	return client->publish(key,value);
+}
+
+bool onion_publish_map(char** dataMap, uint8_t count) {
+	return client->publish(dataMap,count);
+}
+
+void onion_periodic(void) {
+    client->loop();
+}
 
 OnionClient::OnionClient(char* deviceId, char* deviceKey) {
 	this->deviceId = new char[strlen(deviceId) + 1];
@@ -123,7 +148,6 @@ char* OnionClient::registerFunction(char * endpoint, remoteFunction function, ch
 
 	return idStr;
 };
-
 
 bool OnionClient::publish(char* key, char* value) {
 	int key_len = strlen(key);
@@ -257,8 +281,8 @@ void OnionClient::parsePublishData(OnionPacket* pkt) {
     data->unpack();
     uint8_t count = data->getLength();
     uint8_t function_id = data->getItem(0)->getInt();
-	OnionParams* params = new OnionParams(count-1);
-    
+	//OnionParams* params = new OnionParams(count-1);
+    char **params = new char*[count-1];
 	if (count > 1) {
 	    // Get parameters
 	    for (uint8_t i=0;i<(count-1);i++) {
@@ -266,7 +290,8 @@ void OnionClient::parsePublishData(OnionPacket* pkt) {
 	        uint8_t strLen = item->getLength();
 	        // Test
 	        char* buf_ptr = (char *)(item->getBuffer());
-	        params->setStr(i,buf_ptr,strLen);
+	        //params->setStr(i,buf_ptr,strLen);
+	        params[i] = buf_ptr;
 	    }
 	}
 	if (function_id < totalFunctions) {
@@ -275,11 +300,11 @@ void OnionClient::parsePublishData(OnionPacket* pkt) {
 	    } else {
 	        // if the remote function isn't called
 	        // no one will delete params, so we have to
-	        delete params;
+	        delete[] params;
 	    }
 	} else {
 	    // We need to delete this here since no one else can
-	    delete params;
+	    delete[] params;
 	}
 	delete data;
 }

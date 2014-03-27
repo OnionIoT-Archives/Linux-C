@@ -1,8 +1,11 @@
 #ifndef ONION_CLIENT_H
 #define ONION_CLIENT_H
 
+#ifdef  __cplusplus
 #include "OnionParams.h"
 #include "OnionInterface.h"
+#endif
+#include <stdbool.h>
 #include <stdint.h>
 
 // ONION_MAX_PACKET_SIZE : Maximum packet size
@@ -35,7 +38,8 @@
 #define ONIONQOS1        		(1 << 1)
 #define ONIONQOS2        		(2 << 1)
 
-typedef void(*remoteFunction)(OnionParams*);
+typedef void(*remoteFunction)(char**);
+#ifdef __cplusplus
 typedef struct subscription_t {
     uint8_t id;
     char* endpoint;
@@ -43,6 +47,9 @@ typedef struct subscription_t {
     uint8_t param_count;
     subscription_t* next;
 } subscription_t;
+#endif
+
+#ifdef __cplusplus
 class OnionClient {
 
 public:
@@ -89,7 +96,25 @@ protected:
 	char* deviceId;
 	char* deviceKey;
 
-};
+}; 
 
+extern "C" {
+#else
+typedef struct OnionClient OnionClient;
+#endif // End of CPP Section
+
+
+void onion_init (char* deviceId, char* deviceKey);
+void onion_begin();
+void onion_register (char *endpoint, remoteFunction function, char **params, uint8_t param_count);
+bool onion_publish(char* key, char* value);
+bool onion_publish_map(char** dataMap, uint8_t count);
+void onion_periodic(void);
+
+
+#ifdef __cplusplus
+} // close the extern C
 #endif
+
+#endif // End of HEADER
 

@@ -3,24 +3,32 @@
 ##
 ##
 
-
+C = gcc
 CC = g++
-CFLAGS = -c -Wall
-EXE = testExe
+CFLAGS = -c
+C_EXE = cTest
+CPP_EXE = cppTest
 
-all: testApp
+all: cppTest cTest
 
 clean:
 	rm -rf *.o $(EXE)
+	rm -rf libOnionClient.a $(C_EXE) $(CPP_EXE)
 
-testApp: test.o OnionClient.a
-	$(CC) -o $(EXE) test.o OnionClient.a
+cppTest: testCpp.o libOnionClient.a
+	$(CC) -o $(CPP_EXE) testCpp.o libOnionClient.a
 
-test.o: test.cpp
-	$(CC) $(CFLAGS) test.cpp
+cTest: test.o libOnionClient.a
+	$(CC) -o $(C_EXE) test.o libOnionClient.a
 
-OnionClient.a: OnionClient.o OnionParams.o OnionPacket.o OnionPayloadData.o OnionPayloadPacker.o OnionInterface.o
-	ar rcs OnionClient.a OnionClient.o OnionParams.o OnionPacket.o OnionPayloadData.o OnionPayloadPacker.o OnionInterface.o
+testCpp.o: test.cpp
+	$(CC) $(CFLAGS) -o testCpp.o test.cpp
+
+test.o: test.c
+	$(C) $(CFLAGS) test.c
+
+libOnionClient.a: OnionClient.o OnionParams.o OnionPacket.o OnionPayloadData.o OnionPayloadPacker.o OnionInterface.o
+	ar rcs libOnionClient.a OnionClient.o OnionParams.o OnionPacket.o OnionPayloadData.o OnionPayloadPacker.o OnionInterface.o
 
 OnionClient.o: OnionClient.cpp
 	$(CC) $(CFLAGS) OnionClient.cpp
