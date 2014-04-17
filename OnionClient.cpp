@@ -7,11 +7,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-char OnionClient::domain[] = "zh.onion.io";
+char OnionClient::domain[] = "device.onion.io";
 uint16_t OnionClient::port = 2721;
 
 // A paired list of name value pairs to be published when device connects
-static char* publishMap[] = {"ipAddr","192.168.137.1","mac","deadbeef"};
+//static char* publishMap[] = {"ipAddr","192.168.137.1","mac","deadbeef"};
 static uint16_t publishLength = 2; // This is the number of pairs in the map
 //static struct onionClientData = {0};
 OnionClient *client;
@@ -245,7 +245,7 @@ bool OnionClient::loop() {
 				pingOutstanding = false;
 			} else if (type == ONIONSUBACK) {
         	    //printf("Publishing Data\n");
-        		publish(publishMap,publishLength);
+        		//publish(publishMap,publishLength);
 				lastOutActivity = t;
 			}
 			delete pkt;
