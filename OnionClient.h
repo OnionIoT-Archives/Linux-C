@@ -9,13 +9,14 @@
 #include <stdint.h>
 
 // ONION_MAX_PACKET_SIZE : Maximum packet size
-#define ONION_MAX_PACKET_SIZE 	128
+#define ONION_MAX_PACKET_SIZE 	1420
 
 // ONION CONNECT HEADER LENGTH
 #define ONION_HEADER_CONNECT_LENGTH 6
 
 // ONION_KEEPALIVE : keepAlive interval in Seconds
 #define ONION_KEEPALIVE 			15
+#define ONION_RETRY                 1
 
 #define ONIONPROTOCOLVERSION 	1
 #define ONIONCONNECT     		1 << 4  // Client request to connect to Server

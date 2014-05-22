@@ -13,7 +13,7 @@ public:
 	// Initalize data in object
 	void init(OnionPacket* pkt,uint16_t offset);
 	// Call unpack to try and unpack the data into link list of payload objects
-	int8_t unpack(void);
+	uint16_t unpack(void);
 	// getItem(item) will return an item from an array or map so you can dig into the data structure.
 	// item is 0 based index of the array, i should be less than Length (from getLength() below)
 	OnionPayloadData* getItem(uint16_t i);
@@ -31,15 +31,15 @@ public:
 	int16_t getInt(void);
 	// getBool() will return the parsed data of a bool, or false if it is another type
 	bool getBool(void);
-	uint16_t getRawLength();
+	int16_t getRawLength();
 protected:
     // Internal use for unpacking
-	void unpackArray(void);
-	void unpackMap(void);
-	void unpackInt(void);
-	void unpackStr(void);
-	void unpackNil(void);
-	void unpackBool(void);
+    uint16_t unpackArray(uint16_t bytesParsed,uint16_t length);
+	uint16_t unpackMap(uint16_t bytesParsed,uint16_t length);
+//    void unpackInt(void);
+	uint16_t unpackStr(uint8_t* raw,uint16_t length);
+//	void unpackNil(void);
+//	void unpackBool(void);
 
 private:
 	OnionPacket* pkt;
@@ -52,6 +52,7 @@ private:
 	void* data;
 	OnionPayloadData **dataObjectArray;
 	bool dataIsObject;
+	bool dataIsMap;
 };
 
 #endif

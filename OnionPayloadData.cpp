@@ -21,18 +21,23 @@ OnionPayloadData::OnionPayloadData(OnionPacket* pkt,uint16_t offset) {
 OnionPayloadData::~OnionPayloadData() {
     // Free any malloc'd or new'd data in this object
     if (dataObjectArray != 0) {
-        for (uint16_t x = 0;x<length;x++) {
+        uint16_t len = length;
+        if (dataIsMap) {
+            len *= 2;
+        }
+        for (uint16_t x = 0;x<len;x++) {
             delete dataObjectArray[x];
         }
+        delete [] dataObjectArray;
     }
     
     if (data != 0) {
-        free(data);
+        delete[] data;
     }
     
 }
 
-uint16_t OnionPayloadData::getRawLength() {
+int16_t OnionPayloadData::getRawLength() {
     return this->rawLength;
 }
 
@@ -47,61 +52,38 @@ void OnionPayloadData::init(OnionPacket* pkt,uint16_t offset) {
     this->rawBuffer = (pkt->getPayload()) + offset;
     this->rawLength = pkt->getPayloadLength() - offset;
     this->dataIsObject = false;
-    //printf("->init: pkt->length = %d , offset = %d, rawLength = %d\n",pkt->getLength(), offset,this->rawLength);
+    this->dataIsMap = false;
 }
 
 // Call unpack to try and unpack the data into link list of payload objects
 // returns the count of bytes used to unpack
-int8_t OnionPayloadData::unpack(void) {
-    //printf("->unpack: rawLength = %d\n",this->rawLength);
+uint16_t OnionPayloadData::unpack(void) {
     if (rawLength == 0) {
         printf("->unpack: kicked out b/c no rawLength\n");
         return 0;
     }
-    int bytesParsed = 0;
+    uint16_t bytesParsed = 0;
     // If we have data then assume length is 1 until we parse an actual value
     length = 1;
     bytesParsed++;  // Add one to parsed bytes since all formats have at least 1 byte
     uint8_t rawType = rawBuffer[0];
-    //printf("->unpack: rawType = %02X\n",rawType);
     if (((rawType & 0x80) == 0) || ((rawType & 0xE0) == 0xE0)) {
         type = MSGPACK_FIXINT_HEAD;
         data = calloc(1,sizeof(int));
         int *ptr = (int*) data;
         *ptr = rawType;
-        //printf("->unpack: found fixint type, value = %d\n",*ptr);
     } else if ((rawType & 0xF0) == MSGPACK_FIXMAP_HEAD) {
         type = MSGPACK_FIXMAP_HEAD;
         length = rawType & 0x0F;
-        
-        // ************************** THIS NEEDS UPDATING *********************
-        // Need to double length of data array for map pairs, and need to handle
-        // it accordingly in the destructor (probably need another length or map bool
-        dataObjectArray = new OnionPayloadData*[length];
-        dataIsObject = true;
-        for (int x=0;x<length;x++) {
-            dataObjectArray[x] = new OnionPayloadData(pkt,offset+bytesParsed); // Begining of sub object is current offset + bytes parsed
-            bytesParsed += dataObjectArray[x]->unpack();
-        }
+        bytesParsed += unpackMap(bytesParsed,length);
     } else if ((rawType & 0xF0) == MSGPACK_FIXARRAY_HEAD) {
         type = MSGPACK_FIXARRAY_HEAD;
         length = rawType & 0x0F;
-        dataObjectArray = new OnionPayloadData*[length];
-        dataIsObject = true;
-        for (int x=0;x<length;x++) {
-            //printf("->unpack: create a new object with offset=%d & bytesParsed=%d\n",offset,bytesParsed);
-            dataObjectArray[x] = new OnionPayloadData(pkt,offset+bytesParsed); // Begining of sub object is current offset + bytes parsed
-            bytesParsed += dataObjectArray[x]->unpack();
-        }
+        bytesParsed += unpackArray(bytesParsed,length);
     } else if ((rawType & 0xE0) == MSGPACK_FIXSTR_HEAD) {
         type = MSGPACK_FIXSTR_HEAD;
         length = rawType & 0x1F;
-        data = new char[length+1];
-        char* ptr = (char*) data;
-        memcpy(ptr,rawBuffer+1,length);
-        // Do I really need to add this null? probably, but may not be necessary
-        ptr[length] = 0;
-        bytesParsed += length;
+        bytesParsed += unpackStr(rawBuffer+1,length);
     } else {
         type = rawType;
         switch (type) {
@@ -152,35 +134,59 @@ int8_t OnionPayloadData::unpack(void) {
                 break;
             }   
             case MSGPACK_UINT8_HEAD: {
-                // Not Implemented yet
+                data = new uint8_t;
+                uint8_t *ptr = (uint8_t*) data;
+                *ptr = rawBuffer[1];
+                bytesParsed++;
                 break;
             }   
             case MSGPACK_UINT16_HEAD: {
-                // Not Implemented yet
+                data = new uint16_t;
+                uint16_t *ptr = (uint16_t*) data;
+                *ptr = rawBuffer[1]<<8 + rawBuffer[2];
+                bytesParsed+=2;
                 break;
             }   
             case MSGPACK_UINT32_HEAD: {
-                // Not Implemented yet
+                data = new uint32_t;
+                uint32_t *ptr = (uint32_t*) data;
+                *ptr = rawBuffer[1]<<24 + rawBuffer[2]<<16 + rawBuffer[3]<<8 + rawBuffer[4];
+                bytesParsed+=4;
                 break;
             }   
             case MSGPACK_UINT64_HEAD: {
-                // Not Implemented yet
+                data = new uint64_t;
+                uint64_t *ptr = (uint64_t*) data;
+                *ptr = rawBuffer[1]<<56 + rawBuffer[2]<<48 + rawBuffer[3]<<40 + rawBuffer[4]<<32 + rawBuffer[5]<<24 + rawBuffer[6]<<16 + rawBuffer[7]<<8 + rawBuffer[8];
+                bytesParsed+=8;
                 break;
             }   
             case MSGPACK_INT8_HEAD: {
-                // Not Implemented yet
+                data = new int8_t;
+                int8_t *ptr = (int8_t*) data;
+                *ptr = rawBuffer[1];
+                bytesParsed++;
                 break;
             }   
             case MSGPACK_INT16_HEAD: {
-                // Not Implemented yet
+                data = new int16_t;
+                int16_t *ptr = (int16_t*) data;
+                *ptr = rawBuffer[1]<<8 + rawBuffer[2];
+                bytesParsed+=2;
                 break;
             }   
             case MSGPACK_INT32_HEAD: {
-                // Not Implemented yet
+                data = new int32_t;
+                int32_t *ptr = (int32_t*) data;
+                *ptr = rawBuffer[1]<<24 + rawBuffer[2]<<16 + rawBuffer[3]<<8 + rawBuffer[4];
+                bytesParsed+=4;
                 break;
             }   
             case MSGPACK_INT64_HEAD: {
-                // Not Implemented yet
+                data = new int64_t;
+                int64_t *ptr = (int64_t*) data;
+                *ptr = rawBuffer[1]<<56 + rawBuffer[2]<<48 + rawBuffer[3]<<40 + rawBuffer[4]<<32 + rawBuffer[5]<<24 + rawBuffer[6]<<16 + rawBuffer[7]<<8 + rawBuffer[8];
+                bytesParsed+=8;
                 break;
             }   
             case MSGPACK_FIXEXT1_HEAD: {
@@ -204,31 +210,39 @@ int8_t OnionPayloadData::unpack(void) {
                 break;
             }   
             case MSGPACK_STR8_HEAD: {
-                // Not Implemented yet
+                length = rawBuffer[1];
+                bytesParsed++;
+                bytesParsed += unpackStr(rawBuffer+2,length);
                 break;
             }   
             case MSGPACK_STR16_HEAD: {
-                // Not Implemented yet
+                length = (rawBuffer[1]<<8) + rawBuffer[2];
+                bytesParsed += 2;
+                bytesParsed += unpackStr(rawBuffer+3,length);
                 break;
             }   
             case MSGPACK_STR32_HEAD: {
-                // Not Implemented yet
+                // Not Implemented (should never be this big since a single packet can only be 64k)
                 break;
             }   
             case MSGPACK_ARRAY16_HEAD: {
-                // Not Implemented yet
+                length = rawBuffer[1] << 8 + rawBuffer[2];
+                bytesParsed += 2;
+                bytesParsed += unpackArray(bytesParsed,length);
                 break;
             }   
             case MSGPACK_ARRAY32_HEAD: {
-                // Not Implemented yet
+                // Not Implemented (should never be this big since a single packet can only be 64k)
                 break;
             }   
             case MSGPACK_MAP16_HEAD: {
-                // Not Implemented yet
+                length = rawBuffer[1] << 8 + rawBuffer[2];
+                bytesParsed += 2;
+                bytesParsed += unpackMap(bytesParsed,length);
                 break;
             }   
             case MSGPACK_MAP32_HEAD: {
-                // Not Implemented yet
+                // Not Implemented (should never be this big since a single packet can only be 64k)
                 break;
             }   
         }
@@ -284,26 +298,45 @@ bool OnionPayloadData::getBool(void) {
 
 
 // Protected Functions
-void OnionPayloadData::unpackArray(void) {
-    
+uint16_t OnionPayloadData::unpackArray(uint16_t bytesParsed,uint16_t length) {
+    dataObjectArray = new OnionPayloadData*[length];
+    dataIsObject = true;
+    for (int x=0;x<length;x++) {
+        dataObjectArray[x] = new OnionPayloadData(pkt,offset+bytesParsed); // Begining of sub object is current offset + bytes parsed
+        bytesParsed += dataObjectArray[x]->unpack();
+    }
+    return bytesParsed;
 }
 
-void OnionPayloadData::unpackMap(void) {
-    
+uint16_t OnionPayloadData::unpackMap(uint16_t bytesParsed,uint16_t length) {
+    dataObjectArray = new OnionPayloadData*[2*length];
+    dataIsObject = true;
+    dataIsMap = true;
+    for (int x=0;x<(2*length);x++) {
+        dataObjectArray[x] = new OnionPayloadData(pkt,offset+bytesParsed); // Begining of sub object is current offset + bytes parsed
+        bytesParsed += dataObjectArray[x]->unpack();
+    }
 }
 
-void OnionPayloadData::unpackInt(void) {
-    
+//uint16_t OnionPayloadData::unpackInt(uint8_t* raw,uint8_t bytes) {
+//    // The bytes should be 1,2,4,8 for 8/16/32/64 bit ints
+//    data = calloc(bytes, sizeof(uint8_t));
+//    
+//}
+
+uint16_t OnionPayloadData::unpackStr(uint8_t* raw,uint16_t length) {
+    data = new char[length+1];
+    char* ptr = (char*) data;
+    memcpy(ptr,raw,length);
+    // Do I really need to add this null? probably, but may not be necessary
+    ptr[length] = 0;
+    return length;
 }
 
-void OnionPayloadData::unpackStr(void) {
-    
-}
-
-void OnionPayloadData::unpackNil(void) {
-    
-}
-
-void OnionPayloadData::unpackBool(void) {
-    
-}
+//void OnionPayloadData::unpackNil(void) {
+//    
+//}
+//
+//void OnionPayloadData::unpackBool(void) {
+//    
+//}
