@@ -91,7 +91,7 @@ int8_t OnionInterface::send(OnionPacket* pkt) {
 OnionPacket* OnionInterface::getPacket(void) {
     recvPkt = new OnionPacket(128);
     int16_t count = 0;
-    count = recv(sock,recvPkt->getBuffer(),128,MSG_DONTWAIT);
+    count = recv(sock,recvPkt->getBuffer(), 128, MSG_DONTWAIT);
     recvPkt->incrementPtr(count);
     if (count > 0) {
         uint8_t type = recvPkt->getType();

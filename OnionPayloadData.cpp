@@ -14,7 +14,7 @@ OnionPayloadData::OnionPayloadData(OnionPacket* pkt) {
     this->init(pkt,0);
 }
 
-OnionPayloadData::OnionPayloadData(OnionPacket* pkt,uint16_t offset) {
+OnionPayloadData::OnionPayloadData(OnionPacket* pkt, uint16_t offset) {
     this->init(pkt,offset);
 }
 
@@ -25,7 +25,7 @@ OnionPayloadData::~OnionPayloadData() {
         if (dataIsMap) {
             len *= 2;
         }
-        for (uint16_t x = 0;x<len;x++) {
+        for (uint16_t x = 0; x < len; x++) {
             delete dataObjectArray[x];
         }
         delete [] dataObjectArray;
@@ -255,7 +255,7 @@ uint16_t OnionPayloadData::unpack(void) {
 OnionPayloadData* OnionPayloadData::getItem(uint16_t i) {
     if (length == 0) {
         return 0;
-    } else if (i<length) {
+    } else if (i < length) {
         return dataObjectArray[i];
     }
 }

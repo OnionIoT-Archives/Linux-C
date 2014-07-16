@@ -3,39 +3,47 @@
 */
 
 #include <stdio.h>
+#include <iostream>
 #include "OnionClient.h"
+
+#define ONION_MFR_KEY "test-manufacturer-key"
+
+using namespace std;
 
 // local functions to handel remote calls
 void onStart(char** params) {
-    printf("> ON START\n");
+    cout << "> ON START" << endl;
 }
 void onStop(char** params) {
-    printf("> ON STOP\n");
+    cout << "> ON STOP" << endl;
 }
 
 void onPrint(char** params) {
-    printf("> Printing:%s\n",params[0]);
+    cout << "> Printing: " << params[0] << endl;
 }
+
 char* printParams[] = {"message"};
+
 int main(int argc, char *argv[]){
-    printf("Starting Cpp Test..\n");
+    cout << "Starting Cpp Test.." << endl;
 
     // login with device id and device key
-    OnionClient *client = new OnionClient("8T5MF3eI","Niiw52IZVlLhkZHc");
+    OnionClient *client = new OnionClient("8T5MF3eI");
 
     // register local functions to web endpoint
-    client->registerFunction("/start",onStart,0,0);
-    client->registerFunction("/stop",onStop,0,0);
-    client->registerFunction("/print",onPrint,printParams,1);
+    client->declare("start", onStart, 0, 0);
+    client->declare("stop", onStop, 0, 0);
+    client->declare("print", onPrint, printParams, 1);
+
     // initilize the connection
     client->begin();
 
     // Call the loop function in the program's main loop
-    while (1){
+    while (1) {
         client->loop();
     }
 
-    printf("Done\r\n");
+    cout << "Done" << endl;
     return 0;
 }
 

@@ -17,7 +17,7 @@ OnionPacket::OnionPacket(unsigned int length) {
     this->length = 0;
 }
 
-OnionPacket::OnionPacket(uint8_t* buffer,unsigned int length) {
+OnionPacket::OnionPacket(uint8_t* buffer, unsigned int length) {
     this->buf_len = length;
     this->buf = (uint8_t*) calloc(length,sizeof(uint8_t));
     this->ptr = this->buf;
@@ -35,11 +35,11 @@ OnionPacket::~OnionPacket() {
 uint16_t OnionPacket::getFreeBuffer() {
     // ************************ THIS NEEDS IMPROVEMENT **********************************
     // length is not updated enough and the 3 is static, but on a new packet this should return buf_len
-    return buf_len-length-3;
+    return buf_len-length - 3;
 }
 
 int OnionPacket::getBufferLength(void) {
-    return this->length+3;
+    return this->length + 3;
 }
 
 int OnionPacket::getPayloadLength(void) {
@@ -48,7 +48,7 @@ int OnionPacket::getPayloadLength(void) {
 
 int OnionPacket::getPayloadMaxLength(void) {
     if (buf_len > 3) {
-        return buf_len-3;
+        return buf_len - 3;
     } else {
         return 0;
     }
@@ -64,7 +64,7 @@ uint8_t* OnionPacket::getBuffer(void) {
 
 uint8_t* OnionPacket::getPayload(void) {
     if (this->buf_len > 3) {
-        return this->buf+3;
+        return this->buf + 3;
     } else {
         return 0;
     }
