@@ -286,7 +286,7 @@ uint8_t* OnionPayloadData::getBuffer(void) {
 // getInt() will return the raw parse data as an int.  If the type is not int it will return 0
 int16_t OnionPayloadData::getInt(void) {
     if (data != 0) {
-        int *ptr = (int*) data;
+        int *ptr = (int*)data;
         return *ptr;
     } else {
         return -1;

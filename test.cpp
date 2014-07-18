@@ -22,7 +22,7 @@ void onPrint(char** params) {
     cout << "> Printing: " << params[0] << endl;
 }
 
-char* printParams[] = {"message"};
+char* printParams[] = {"message1", "message2"};
 
 int main(int argc, char *argv[]){
     cout << "Starting Cpp Test.." << endl;
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]){
     // register local functions to web endpoint
     client->declare("start", onStart, 0, 0);
     client->declare("stop", onStop, 0, 0);
-    client->declare("print", onPrint, printParams, 1);
+    client->declare("print", onPrint, printParams, 2);
 
     // initilize the connection
     client->begin();

@@ -479,7 +479,6 @@ void OnionClient::sendPingResponse(void) {
 }
 
 void OnionClient::parsePublishData(OnionPacket* pkt) {
-    
     uint16_t length = pkt->getBufferLength();
     uint8_t *ptr = pkt->getBuffer();
     OnionPayloadData* data = new OnionPayloadData(pkt);
@@ -487,16 +486,19 @@ void OnionClient::parsePublishData(OnionPacket* pkt) {
     data->unpack();
     uint8_t count = data->getLength();
     uint8_t function_id = data->getItem(0)->getInt();
-//	OnionParams* params = new OnionParams(count-1);
-    char **params = 0;
+
+    printf("data length: %i, function ID: %i;\n", count, function_id);
+
+    // OnionParams* params = new OnionParams(count-1);
+    char** params = 0;
     if (count > 1) {
-        params = new char*[count-1];
+        params = new char*[count - 1];
 	    // Get parameters
-	    for (uint8_t i=0;i<(count-1);i++) {
-	        OnionPayloadData* item = data->getItem(i+1);
+	    for (uint8_t i = 0; i < (count - 1); i++) {
+	        OnionPayloadData* item = data->getItem(i + 1);
 	        uint8_t strLen = item->getLength();
 	        // Test
-	        params[i] = (char *)(item->getBuffer());
+	        params[i] = (char*)(item->getBuffer());
 	        //params->setStr(i,buf_ptr,strLen);
 	    }
 	}
