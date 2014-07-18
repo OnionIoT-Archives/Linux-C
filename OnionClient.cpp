@@ -8,7 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-char OnionClient::domain[] = "bl.onion.io";
+char OnionClient::domain[] = "ecovent.onion.io";
 uint16_t OnionClient::port = 2721;
 
 // A paired list of name value pairs to be published when device connects
