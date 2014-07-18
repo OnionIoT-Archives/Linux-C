@@ -157,12 +157,19 @@ bool OnionClient::connect(char* mfrKey, char* deviceId) {
                 uint8_t *ptr = recv_pkt->getBuffer();
                 OnionPayloadData* data = new OnionPayloadData(recv_pkt);
                 data->unpack();
-
+                
                 OnionPayloadData* deviceKeyData = data->getItem(0);
+                if (deviceKeyData == 0) {
+                    // report an error and move on
+                    //printf("Failed to get device key, got %d instead\n",data->getInt());
+                    logError(data->getInt());
+                    return false;
+                }
+                
                 this->deviceKey = new char[deviceKeyData->getLength() + 1]();
                 strcpy(this->deviceKey, (char*)deviceKeyData->getBuffer());
-
-                delete deviceKeyData;
+                
+                delete data;
 
                 FILE* deviceKeyFile;
                 if (deviceKeyFile = fopen(ONION_DEVICE_KEY_LOCATION, "w")) {
