@@ -85,7 +85,7 @@ OnionClient::~OnionClient() {
 
 void OnionClient::begin() {
     // Device has been registered
-    /*if (deviceKey) {        
+    if (deviceKey) {        
         printf("DEVICE_KEY found.\n");
 
         if (connect(deviceKey)) {
@@ -94,7 +94,7 @@ void OnionClient::begin() {
     } 
 
     // Register device for the first time
-    else {*/
+    else {
         printf("No DEVICE_KEY found.\n");
 
         char* mfrKey;
@@ -120,7 +120,7 @@ void OnionClient::begin() {
             logError(6);
             exit(EXIT_FAILURE);
         }
-    //}
+    }
 }
 
 void OnionClient::setMetaData(char* device_type, char* firmware_version, char* hardware_version) {
