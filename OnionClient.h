@@ -61,6 +61,7 @@ public:
 	OnionClient(char*);
     ~OnionClient();
 	void begin();
+	void setMetaData(char*, char*, char*);
 	uint16_t declare(char*, remoteFunction, char**, uint8_t);
     void declare(char*, char*);
     void update(char*, float);
@@ -73,6 +74,7 @@ public:
 
 protected:
 	void callback(uint8_t*, uint8_t*, unsigned int);
+	bool parseConnectionAck(OnionPacket*);
 	void parsePublishData(OnionPacket*);
 	void sendPingRequest(void);
 	void sendPingResponse(void);
@@ -105,6 +107,9 @@ protected:
 
 	char* deviceId;
 	char* deviceKey;
+	bool isOnline;
+	char** metaDataMap;
+	uint8_t metaDataLength;
 }; 
 
 extern "C" {
@@ -113,7 +118,7 @@ typedef struct OnionClient OnionClient;
 #endif // End of CPP Section
 
 
-void onion_init(char*);
+void onion_init(char*,char*,char*,char*);
 void onion_begin();
 uint16_t onion_declare(char*, remoteFunction, char**, uint8_t);
 bool onion_publish(char*, char*);

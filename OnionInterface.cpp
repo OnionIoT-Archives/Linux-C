@@ -120,6 +120,7 @@ char* OnionInterface::getIPAddr(void) {
 
 void OnionInterface::close(void) {
     ::close(sock);
+    sock = 0;
 }
 
 int OnionInterface::getMillis(void) {

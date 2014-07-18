@@ -26,7 +26,9 @@ char* testParams[] = {"status"};
 int main(int argc, char *argv[]) {
     printf("Starting C Test..\n");
     int i;
-    onion_init("8T5MF3eI");
+    // Setup onion client data:
+    // Device Id, device_type, firmware_version and hardware_version
+    onion_init("8T5MF3eI","linux-c","1.0","0.1");
     onion_declare("start", onStart, 0, 0);
     onion_declare("stop", onStop, 0, 0);
     onion_declare("update", onUpdate, testParams, 1);

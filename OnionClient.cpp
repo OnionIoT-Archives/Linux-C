@@ -3,6 +3,7 @@
 #include "OnionPayloadData.h"
 #include "OnionPayloadPacker.h"
 #include "OnionInterface.h"
+#include "msgpack_types.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -20,8 +21,9 @@ static uint16_t publishLength = 2; // This is the number of pairs in the map
 
 OnionClient *client;
 
-void onion_init(char* deviceId) {
+void onion_init(char* deviceId, char* device_type, char* firmware_version, char* hardware_version) {
     client = new OnionClient(deviceId);
+    client->setMetaData(device_type, firmware_version, hardware_version);
 }
 
 void onion_begin() {
@@ -65,6 +67,9 @@ OnionClient::OnionClient(char* deviceId) {
 	this->deviceId = new char[strlen(deviceId) + 1]();
 	strcpy(this->deviceId, deviceId);
 	
+	this->isOnline = false;
+	this->metaDataLength = 0;
+	this->metaDataMap = 0;
 	this->remoteFunctions = new remoteFunction[1];
 	this->remoteFunctions[0] = NULL;
 	this->totalFunctions = 1;
@@ -100,7 +105,7 @@ void OnionClient::begin() {
             fseek(mfrKeyFile, 0, SEEK_END);
             length = ftell(mfrKeyFile);
             fseek(mfrKeyFile, 0, SEEK_SET);
-            mfrKey = (char*) malloc(length);
+            mfrKey = new char[length];
             fscanf(mfrKeyFile, "%s", mfrKey);
             fclose(mfrKeyFile);
 
@@ -118,6 +123,30 @@ void OnionClient::begin() {
     }
 }
 
+void OnionClient::setMetaData(char* device_type, char* firmware_version, char* hardware_version) {
+    if (metaDataMap != 0) {
+        delete metaDataMap[1];
+        delete metaDataMap[3];
+        delete metaDataMap[5];
+        metaDataMap[1] = new char[strlen(device_type)];
+        strcpy(metaDataMap[1],device_type);
+        metaDataMap[3] = new char[strlen(firmware_version)];
+        strcpy(metaDataMap[1],firmware_version);
+        metaDataMap[5] = new char[strlen(hardware_version)];
+    } else {
+        metaDataMap = new char*[6];
+        metaDataMap[0] = "device_type";
+        metaDataMap[1] = new char[strlen(device_type)];
+        strcpy(metaDataMap[1],device_type);
+        metaDataMap[2] = "firmware_version";
+        metaDataMap[3] = new char[strlen(firmware_version)];
+        strcpy(metaDataMap[3],firmware_version);
+        metaDataMap[4] = "hardware_version";
+        metaDataMap[5] = new char[strlen(hardware_version)];
+        strcpy(metaDataMap[5],hardware_version);
+        metaDataLength = 3;
+    }        
+}
 
 // PRE-REGISTER
 bool OnionClient::connect(char* mfrKey, char* deviceId) {
@@ -157,7 +186,7 @@ bool OnionClient::connect(char* mfrKey, char* deviceId) {
                 uint8_t *ptr = recv_pkt->getBuffer();
                 OnionPayloadData* data = new OnionPayloadData(recv_pkt);
                 data->unpack();
-                
+
                 OnionPayloadData* deviceKeyData = data->getItem(0);
                 if (deviceKeyData == 0) {
                     // report an error and move on
@@ -168,7 +197,7 @@ bool OnionClient::connect(char* mfrKey, char* deviceId) {
                 
                 this->deviceKey = new char[deviceKeyData->getLength() + 1]();
                 strcpy(this->deviceKey, (char*)deviceKeyData->getBuffer());
-                
+
                 delete data;
 
                 FILE* deviceKeyFile;
@@ -351,34 +380,9 @@ bool OnionClient::subscribe() {
 
 	        // Send subscribe packet
 	        interface->send(pkt);
-
-            // Wait for SUBACK
-            OnionPacket *recv_pkt = interface->getPacket();
-            while (recv_pkt == 0) {
-                unsigned long t = interface->getMillis();
-                if (t - lastInActivity > ONION_KEEPALIVE * 1000UL) {
-                    interface->close();
-                    return false;
-                }
-                recv_pkt = interface->getPacket();
-            }
-            uint8_t pkt_type = recv_pkt->getType();
-            uint16_t length = recv_pkt->getPayloadLength();
-            uint8_t* payload = recv_pkt->getPayload();
-            if ((pkt_type == ONION_SUBACK) && (length > 0)) {
-                if (payload[0] == 0) {
-                    lastInActivity = interface->getMillis();
-                    pingOutstanding = false;
-                    printf("Subscriptions acknowledged by server.\n");
-                    
-                    // Since the packet is received by the server, we can delete the packer
-                    delete pack;
-                    return true;
-                } else {
-                    logError(payload[0]);
-                }
-            }
-            delete recv_pkt;
+	        // Since the packet is generated and sent we can delete the packer
+	        delete pack;
+	        return true;
 	    }
 	    
 	}
@@ -404,16 +408,29 @@ bool OnionClient::loop() {
 		if (pkt != 0) {
 			lastInActivity = t;
 			uint8_t type = pkt->getType();
+			if (type == ONION_CONNACK) {
+				if(parseConnectionAck(pkt)){
+				    subscribe();
+				} else {
+					interface->close();
+					delete pkt;
+					return false;
+				}
 
-			if (type == ONION_PUBLISH) {
+		    } else if (type == ONION_SUBACK) {
+        	    //Serial.print("Publishing Data\n");
+        		//publish("/onion","isAwesome");
+				isOnline = true;
+				publish(metaDataMap,metaDataLength);
+				lastOutActivity = t;
+			} else if (type == ONION_PUBLISH) {
 			    parsePublishData(pkt);
 			} else if (type == ONION_PINGREQ) {
 				sendPingResponse();
 				lastOutActivity = t;
 			} else if (type == ONION_PINGRESP) {
 				pingOutstanding = false;
-			}
-
+			} 
 			delete pkt;
 		}
 		return true;
@@ -426,6 +443,28 @@ bool OnionClient::loop() {
 	}
 }
 
+bool OnionClient::parseConnectionAck(OnionPacket* pkt) {
+    uint16_t length = pkt->getBufferLength();
+    uint8_t *ptr = pkt->getBuffer();
+    OnionPayloadData* data = new OnionPayloadData(pkt);
+    data->unpack();
+    if (data->getType() == MSGPACK_FIXINT_HEAD) {
+        // This is a device connection response, or error.
+        uint16_t response = data->getInt();
+        if (response == 0) {
+            delete data;
+            return true;
+        } else {
+            logError(response);
+            delete data;
+            return false;
+        }
+    } else {
+        // This is a response with the new device key
+        
+    }
+    
+}
 
 void OnionClient::sendPingRequest(void) {
     OnionPacket* pkt = new OnionPacket(8);
