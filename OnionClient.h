@@ -42,7 +42,7 @@
 #define ONION_MFR_KEY_LOCATION "./MFR_KEY"
 #define ONION_DEVICE_KEY_LOCATION "./DEVICE_KEY"
 
-typedef void(*remoteFunction)(char**);
+typedef char*(*remoteFunction)(char**);
 
 #ifdef __cplusplus
 typedef struct subscription_t {

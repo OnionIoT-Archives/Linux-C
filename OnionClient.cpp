@@ -405,6 +405,7 @@ bool OnionClient::loop() {
 		}
 
         OnionPacket* pkt = interface->getPacket();
+
 		if (pkt != 0) {
 			lastInActivity = t;
 			uint8_t type = pkt->getType();
@@ -502,9 +503,24 @@ void OnionClient::parsePublishData(OnionPacket* pkt) {
 	        //params->setStr(i,buf_ptr,strLen);
 	    }
 	}
+
 	if (function_id < totalFunctions) {
 	    if (remoteFunctions[function_id] != 0) {
-	        remoteFunctions[function_id](params);
+	        char* returnedVal;
+            returnedVal = remoteFunctions[function_id](params);
+            int length = strlen(returnedVal);
+
+            if (interface->connected()) {
+                OnionPacket* pkt = new OnionPacket(ONION_MAX_PACKET_SIZE);
+                pkt->setType(ONION_PUBACK);
+                OnionPayloadPacker* pack = new OnionPayloadPacker(pkt);
+                //pack->packArray(2);
+                pack->packStr(returnedVal);
+                interface->send(pkt);
+
+                lastInActivity = lastOutActivity = interface->getMillis();
+                delete pack;
+            }
 	    }
 	} 
 	if (params != 0) {

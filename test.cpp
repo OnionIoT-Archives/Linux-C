@@ -11,14 +11,16 @@
 using namespace std;
 
 // local functions to handel remote calls
-void onStart(char** params) {
+char* onStart(char** params) {
     cout << "> ON START" << endl;
+
+    return "return onStart";
 }
-void onStop(char** params) {
+char* onStop(char** params) {
     cout << "> ON STOP" << endl;
 }
 
-void onPrint(char** params) {
+char* onPrint(char** params) {
     cout << "> Printing: " << params[0] << endl;
 }
 
@@ -28,7 +30,7 @@ int main(int argc, char *argv[]){
     cout << "Starting Cpp Test.." << endl;
 
     // login with device id and device key
-    OnionClient *client = new OnionClient("8T5MF3eI");
+    OnionClient *client = new OnionClient("00C0CA75A715");
 
     // register local functions to web endpoint
     client->declare("start", onStart, 0, 0);
